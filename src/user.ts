@@ -16,64 +16,35 @@ export class User {
   id: number
   name: string
   wallet: number
-  orders: Order[]
+  orders: Order[] = []
 
   constructor(id: number, name: string, wallet: number) {
     this.id = id
     this.name = name
     this.wallet = wallet
-    this.orders = []
   }
 
   orderMeal(meal: Meal): void {
-    if (meal.price > this.wallet) {
-      throw new TropPauvreErreur(
-        `Pas assez de sous "${meal.name}"`,
-        this.wallet,
-        meal.price
-      )
-    }
+    if (meal.price > this.wallet) throw new TropPauvreErreur("Pas assez de sous", this.wallet, meal.price)
     this.wallet -= meal.price
-
-    const newOrder: Order = {
-      id: Date.now(),
-      meals: [meal],
-      total: meal.price
-    }
-
-    this.orders.push(newOrder)
+    this.orders.push({ id: Date.now(), meals: [meal], total: meal.price })
     this.saveOrders()
   }
 
   orderMeals(meals: Meal[]): void {
     const total = meals.reduce((sum, m) => sum + m.price, 0)
-    if (total > this.wallet) {
-      throw new TropPauvreErreur(
-        `Pas assez de sous`,
-        this.wallet,
-        total
-      )
-    }
+    if (total > this.wallet) throw new TropPauvreErreur("Pas assez de sous", this.wallet, total)
     this.wallet -= total
-
-    const newOrder: Order = {
-      id: Date.now(),
-      meals,
-      total
-    }
-
-    this.orders.push(newOrder)
+    this.orders.push({ id: Date.now(), meals, total })
     this.saveOrders()
   }
 
   saveOrders(): void {
-    localStorage.setItem(`orders_${this.id}`, JSON.stringify(this.orders))
+    localStorage.setItem(`orders${this.id}`, JSON.stringify(this.orders))
   }
 
   loadOrders(): void {
-    const saved = localStorage.getItem(`orders_${this.id}`)
-    if (saved) {
-      this.orders = JSON.parse(saved) as Order[]
-    }
+    const saved = localStorage.getItem(`orders${this.id}`)
+    if (saved) this.orders = JSON.parse(saved)
   }
 }
