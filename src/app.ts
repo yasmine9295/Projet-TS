@@ -29,10 +29,10 @@ const updateUI = () => {
   orderHistoryEl.innerHTML = user.orders.length
     ? user.orders.map((o, idx) =>
         `<div>
-          <span>Commande #${o.id} — ${o.meals.map(m => m.name).join(", ")} total : ${o.total}€</span>
-          <button class="btn btn-sm btn-outline-danger" data-idx="${idx}">Supprimer</button>
+          <span>${o.meals.map(m => m.name).join(", ")} total : ${o.total}€</span>
+          <button data-idx="${idx}">Supprimer</button>
         </div>`).join('')
-    : "<p class='text-muted'>Aucune commande.</p>"
+    : "<p class='text-muted'>pas de commande.</p>"
 
   orderHistoryEl.querySelectorAll("button").forEach(btn =>
     btn.addEventListener("click", e => {
@@ -51,7 +51,7 @@ const displayMeals = () => {
           <span>${m.name} — ${m.price}€ (${m.calories} kcal)</span>
           <button>Ajouter au menu</button>
         </li>`).join('')
-    : "<li class='list-group-item'>Aucun repas dispo.</li>"
+    : "<li>Aucun repas dispo.</li>"
 
   mealListEl.querySelectorAll("button").forEach((btn, i) =>
     btn.addEventListener("click", () => addToMenu(tousLesRepas[i]))

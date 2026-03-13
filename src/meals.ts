@@ -19,7 +19,7 @@ export async function fetchMeals(): Promise<Meal[]> {
   try {
     const response = await fetch("https://keligmartin.github.io/api/meals.json")
     if (!response.ok) {
-      throw new Error(`Erreur serveur : ${response.status}`)
+      throw new Error(`Erreur : ${response.status}`)
     }
     const meals: Meal[] = await response.json()
     return meals
