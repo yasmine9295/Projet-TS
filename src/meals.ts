@@ -24,7 +24,7 @@ export async function fetchMeals(): Promise<Meal[]> {
     const meals: Meal[] = await response.json()
     return meals
   } catch (error) {
-    console.error("Erreur lors du chargement des repas")
+    console.error("Erreur repas")
     return []
   }
 }

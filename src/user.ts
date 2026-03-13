@@ -1,8 +1,8 @@
 import { Meal, Order } from "./meals.js"
 
 export class TropPauvreErreur extends Error {
-  public solde: number
-  public prixCommande: number
+  solde: number
+  prixCommande: number
 
   constructor(message: string, solde: number, prixCommande: number) {
     super(message)
@@ -28,18 +28,38 @@ export class User {
   orderMeal(meal: Meal): void {
     if (meal.price > this.wallet) {
       throw new TropPauvreErreur(
-        `Fonds insuffisants pour commander "${meal.name}"`,
+        `Pas assez de sous "${meal.name}"`,
         this.wallet,
         meal.price
       )
     }
-
     this.wallet -= meal.price
 
     const newOrder: Order = {
       id: Date.now(),
       meals: [meal],
       total: meal.price
+    }
+
+    this.orders.push(newOrder)
+    this.saveOrders()
+  }
+
+  orderMeals(meals: Meal[]): void {
+    const total = meals.reduce((sum, m) => sum + m.price, 0)
+    if (total > this.wallet) {
+      throw new TropPauvreErreur(
+        `Pas assez de sous`,
+        this.wallet,
+        total
+      )
+    }
+    this.wallet -= total
+
+    const newOrder: Order = {
+      id: Date.now(),
+      meals,
+      total
     }
 
     this.orders.push(newOrder)

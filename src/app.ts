@@ -1,110 +1,108 @@
-import { Meal, fetchMeals } from "./meals.js"
+import { fetchMeals, Meal } from "./meals.js"
+import { User } from "./user.js"
 
-// --- Récupération des éléments HTML ---
-const mealNameInput = document.getElementById("mealName") as HTMLInputElement
-const mealCaloriesInput = document.getElementById("mealCalories") as HTMLInputElement
-const mealPriceInput = document.getElementById("mealPrice") as HTMLInputElement
-const addMealBtn = document.getElementById("addMealBtn") as HTMLButtonElement
+const user = new User(1, "Bob", 30)
+user.loadOrders()
+
+let panier: Meal[] = []
+let tousLesRepas: Meal[] = []
+let nextMealId = 1000
 
 const mealListEl = document.getElementById("mealList") as HTMLUListElement
 const menuListEl = document.getElementById("menuList") as HTMLUListElement
+const menuTotalHTEl = document.getElementById("menuTotalHT") as HTMLSpanElement
+const menuTotalTTCEl = document.getElementById("menuTotalTTC") as HTMLSpanElement
 const calculateMenuBtn = document.getElementById("calculateMenuBtn") as HTMLButtonElement
-const menuTotalHT = document.getElementById("menuTotalHT") as HTMLSpanElement
-const menuTotalTTC = document.getElementById("menuTotalTTC") as HTMLSpanElement
+const orderMenuBtn = document.getElementById("orderMenuBtn") as HTMLButtonElement
+const addMealBtn = document.getElementById("addMealBtn") as HTMLButtonElement
+const mealNameInput = document.getElementById("mealName") as HTMLInputElement
+const mealCaloriesInput = document.getElementById("mealCalories") as HTMLInputElement
+const mealPriceInput = document.getElementById("mealPrice") as HTMLInputElement
+const walletDisplayEl = document.getElementById("walletDisplay") as HTMLElement
+const walletErrorEl = document.getElementById("walletError") as HTMLSpanElement
+const userNameEl = document.getElementById("userName") as HTMLElement
+const orderHistoryEl = document.getElementById("orderHistory") as HTMLDivElement
 
-let meals: Meal[] = []
-let menu: Meal[] = []
+const updateUI = () => {
+  walletDisplayEl.textContent = `${user.wallet}€`
+  userNameEl.textContent = user.name
+  orderHistoryEl.innerHTML = user.orders.length
+    ? user.orders.map((o, idx) =>
+        `<div>
+          <span>Commande #${o.id} — ${o.meals.map(m => m.name).join(", ")} total : ${o.total}€</span>
+          <button class="btn btn-sm btn-outline-danger" data-idx="${idx}">Supprimer</button>
+        </div>`).join('')
+    : "<p class='text-muted'>Aucune commande.</p>"
 
-function displayMeals(): void {
-  mealListEl.innerHTML = ""
-  if (meals.length === 0) {
-    mealListEl.innerHTML = "<li class='list-group-item'>Aucun repas disponible.</li>"
-    return
-  }
-
-  meals.forEach((meal) => {
-    const li = document.createElement("li")
-    li.className = "list-group-item d-flex justify-content-between align-items-center"
-
-    const span = document.createElement("span")
-    span.textContent = `${meal.name} - ${meal.price}€ (${meal.calories} kcal)`
-
-    const addBtn = document.createElement("button")
-    addBtn.textContent = "Ajouter au menu"
-    addBtn.className = "btn btn-sm btn-primary"
-    addBtn.addEventListener("click", () => {
-      menu.push(meal)
-      displayMenu()
+  orderHistoryEl.querySelectorAll("button").forEach(btn =>
+    btn.addEventListener("click", e => {
+      const idx = parseInt((e.target as HTMLButtonElement).dataset.idx!)
+      user.orders.splice(idx, 1)
+      user.saveOrders()
+      updateUI()
     })
-
-    li.appendChild(span)
-    li.appendChild(addBtn)
-    mealListEl.appendChild(li)
-  })
+  )
 }
 
+const displayMeals = () => {
+  mealListEl.innerHTML = tousLesRepas.length
+    ? tousLesRepas.map(m =>
+        `<li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>${m.name} — ${m.price}€ (${m.calories} kcal)</span>
+          <button>Ajouter au menu</button>
+        </li>`).join('')
+    : "<li class='list-group-item'>Aucun repas dispo.</li>"
 
-function displayMenu(): void {
+  mealListEl.querySelectorAll("button").forEach((btn, i) =>
+    btn.addEventListener("click", () => addToMenu(tousLesRepas[i]))
+  )
+}
+
+const addToMenu = (meal: Meal) => {
+  panier.push(meal)
+  const li = document.createElement("li")
+  li.textContent = `${meal.name} — ${meal.price}€`
+  const removeBtn = document.createElement("button")
+  removeBtn.className = "btn btn-sm btn-outline-danger"
+  removeBtn.textContent = "Supprimer"
+  removeBtn.addEventListener("click", () => { panier.splice(panier.indexOf(meal), 1); li.remove() })
+  li.appendChild(removeBtn)
+  menuListEl.appendChild(li)
+}
+
+calculateMenuBtn.addEventListener("click", () => {
+  const totalHT = panier.reduce((s, m) => s + m.price, 0)
+  menuTotalHTEl.textContent = totalHT.toFixed(2)
+  menuTotalTTCEl.textContent = (totalHT * 1.1).toFixed(2)
+})
+
+orderMenuBtn.addEventListener("click", () => {
+  if (!panier.length) { walletErrorEl.textContent = "panier vide"; return }
+  const totalPrix = panier.reduce((s, m) => s + m.price, 0)
+  if (totalPrix > user.wallet) { walletErrorEl.textContent = `pas assez de sous: ${user.wallet}€`; return }
+  panier.forEach(m => user.orderMeal(m))
+  user.saveOrders()
+  panier = []
   menuListEl.innerHTML = ""
-  if (menu.length === 0) {
-    menuListEl.innerHTML = "<li class='list-group-item'>Aucun repas dans le menu.</li>"
-    return
-  }
-
-  menu.forEach((meal, index) => {
-    const li = document.createElement("li")
-    li.className = "list-group-item d-flex justify-content-between align-items-center"
-    li.textContent = `${meal.name} - ${meal.price}€`
-    
-    const removeBtn = document.createElement("button")
-    removeBtn.textContent = "Supprimer"
-    removeBtn.className = "btn btn-sm btn-danger"
-    removeBtn.addEventListener("click", () => {
-      menu.splice(index, 1)
-      displayMenu()
-    })
-
-    li.appendChild(removeBtn)
-    menuListEl.appendChild(li)
-  })
-}
+  menuTotalHTEl.textContent = "0"
+  menuTotalTTCEl.textContent = "0"
+  walletErrorEl.textContent = ""
+  updateUI()
+})
 
 addMealBtn.addEventListener("click", () => {
   const name = mealNameInput.value.trim()
   const calories = parseInt(mealCaloriesInput.value)
   const price = parseFloat(mealPriceInput.value)
-
-  if (!name || isNaN(calories) || isNaN(price)) {
-    alert("Veuillez remplir tous les champs correctement.")
-    return
-  }
-
-  const newMeal: Meal = {
-    id: Date.now(),
-    name,
-    calories,
-    price
-  }
-
-  meals.push(newMeal)
+  if (!name || isNaN(calories) || isNaN(price)) return
+  tousLesRepas.push({ id: nextMealId++, name, calories, price })
   displayMeals()
-
-  mealNameInput.value = ""
-  mealCaloriesInput.value = ""
-  mealPriceInput.value = ""
+  mealNameInput.value = mealCaloriesInput.value = mealPriceInput.value = ""
 })
 
-
-calculateMenuBtn.addEventListener("click", () => {
-  const totalHT = menu.reduce((sum, m) => sum + m.price, 0)
-  const totalTTC = totalHT * 1.2 
-  menuTotalHT.textContent = totalHT.toFixed(2)
-  menuTotalTTC.textContent = totalTTC.toFixed(2)
-})
-
-
-async function init(): Promise<void> {
-  meals = await fetchMeals()
+async function init() {
+  tousLesRepas = await fetchMeals()
+  updateUI()
   displayMeals()
 }
 
